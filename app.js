@@ -163,27 +163,33 @@ function initMap() {
     if (e.features.length > 0) {
       const feature = e.features[0];
       if (feature.properties.category === "building") return;
+      if (feature.properties.isOutline) return;
       
       map.getCanvas().style.cursor = "pointer";
 
-      if (hoveredFeatureId !== null) {
+      // Clear previous hover state
+      if (hoveredFeatureId !== null && hoveredFeatureId !== undefined) {
         map.setFeatureState(
           { source: "floorplan", id: hoveredFeatureId },
           { hover: false }
         );
       }
 
-      hoveredFeatureId = e.features[0].id;
-      map.setFeatureState(
-        { source: "floorplan", id: hoveredFeatureId },
-        { hover: true }
-      );
+      // Set new hover state only if feature has an id
+      const newId = e.features[0].id;
+      if (newId !== null && newId !== undefined) {
+        hoveredFeatureId = newId;
+        map.setFeatureState(
+          { source: "floorplan", id: hoveredFeatureId },
+          { hover: true }
+        );
+      }
     }
   });
 
   map.on("mouseleave", "room-extrusion", () => {
     map.getCanvas().style.cursor = "";
-    if (hoveredFeatureId !== null) {
+    if (hoveredFeatureId !== null && hoveredFeatureId !== undefined) {
       map.setFeatureState(
         { source: "floorplan", id: hoveredFeatureId },
         { hover: false }
@@ -309,19 +315,20 @@ function updateLabelPositions() {
   const pitch = map.getPitch();
   const zoom = map.getZoom();
   
-  // Calculate meters per pixel at current zoom (approximate)
-  const metersPerPixel = 156543.03392 * Math.cos(map.getCenter().lat * Math.PI / 180) / Math.pow(2, zoom);
+  // Scale factor based on zoom (labels move more at higher zoom)
+  const zoomScale = Math.pow(2, zoom - 18);
   
-  // Pitch factor: how much vertical offset appears based on camera tilt
-  const pitchFactor = Math.sin(pitch * Math.PI / 180);
-
   storeMarkers.forEach(({ marker, element, height }) => {
-    // Calculate pixel offset based on extrusion height
-    // Multiplier increased to 2.5 for labels to appear above polygon tops
-    const heightOffset = (height / metersPerPixel) * pitchFactor * 2.5;
+    // Fixed offset: 15 pixels per meter of height, scaled by zoom
+    // Ground floor (4m) = 60px, Floor 1 (8m) = 120px, Floor 2 (12m) = 180px
+    const baseOffset = height * 15 * zoomScale;
+    
+    // Pitch adjustment: reduce offset when looking straight down
+    const pitchMultiplier = 0.3 + (pitch / 90) * 0.7;
+    const totalOffset = baseOffset * pitchMultiplier;
     
     // Apply vertical offset via CSS transform
-    element.style.transform = `translateY(${-heightOffset}px)`;
+    element.style.transform = `translateY(${-totalOffset}px)`;
   });
 }
 
@@ -381,7 +388,7 @@ function handleRoomClick(e) {
   const coordinates = getFeatureCenter(feature);
   map.flyTo({
     center: coordinates,
-    zoom: 18,
+    zoom: 21,
     pitch: 60,
     duration: 800,
   });
