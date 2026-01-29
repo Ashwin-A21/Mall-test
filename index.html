@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kerala Mall 3D Map</title>
+    
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">
+            <span class="logo-icon">🏢</span>
+            <h1>Kerala Mall Map</h1>
+        </div>
+        <div class="location-badge">
+            <span class="icon">📍</span> Kasargod, Kerala
+        </div>
+    </div>
+
+    <!-- Floor Selector -->
+    <div class="floor-selector">
+        <h3>Floor Level</h3>
+        <div class="floor-buttons">
+            <button class="floor-btn" data-floor="2">
+                <span class="floor-number">2</span>
+                <span class="floor-name">Cinema & Food</span>
+            </button>
+            <button class="floor-btn" data-floor="1">
+                <span class="floor-number">1</span>
+                <span class="floor-name">Retail Stores</span>
+            </button>
+            <button class="floor-btn active" data-floor="0">
+                <span class="floor-number">G</span>
+                <span class="floor-name">Ground Floor</span>
+            </button>
+        </div>
+        
+        <!-- Legend -->
+        <div class="floor-legend">
+            <div class="legend-item">
+                <span class="legend-color" style="background: #EC4899;"></span>
+                <span>Stores</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #F97316;"></span>
+                <span>Food</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #7C3AED;"></span>
+                <span>Entertainment</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #0EA5E9;"></span>
+                <span>Washroom</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Panel -->
+    <div class="nav-panel">
+        <div class="nav-header">
+            <h3>Find Your Way</h3>
+            <button id="close-nav" class="close-btn" title="Clear Navigation">×</button>
+        </div>
+        <div class="nav-content">
+            <div class="nav-section">
+                <label for="nav-from">Start From</label>
+                <select id="nav-from" class="nav-select">
+                    <option value="">Select starting point...</option>
+                </select>
+            </div>
+            
+            <div class="nav-section">
+                <label for="nav-to">Destination</label>
+                <select id="nav-to" class="nav-select">
+                    <option value="">Select destination...</option>
+                </select>
+            </div>
+            
+            <button id="navigate-btn" class="navigate-btn">
+                <span>Get Directions</span>
+                <span class="arrow">→</span>
+            </button>
+            
+            <div id="nav-result" class="nav-result">
+                <!-- Navigation steps will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Info Popup -->
+    <div id="room-info" class="room-info">
+        <div class="room-info-header">
+            <h4 id="room-name">Store Name</h4>
+            <span id="room-category" class="room-category">Category</span>
+        </div>
+        <p id="room-description">Description goes here...</p>
+        <div class="room-actions">
+            <button id="set-start-btn" class="action-btn">Start Here</button>
+            <button id="set-dest-btn" class="action-btn primary">Navigate Here</button>
+        </div>
+    </div>
+    
+    <!-- Controls Info -->
+    <div class="controls-info">
+        <div class="control-hint">Right-click + Drag to rotate</div>
+        <div class="control-hint">Scroll to zoom</div>
+    </div>
+
+    <!-- View Toggle -->
+    <div class="view-toggle">
+        <button id="view-3d" class="view-btn active" title="3D View">3D</button>
+        <button id="view-2d" class="view-btn" title="2D Top View">2D</button>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading-overlay">
+        <div class="loader"></div>
+        <p>Loading 3D Map...</p>
+    </div>
+
+    <!-- App Script -->
+    <script src="app.js"></script>
+</body>
+</html>

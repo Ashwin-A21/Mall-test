@@ -1,0 +1,154 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Stiching Fatima",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            [74.90428883466632, 12.706229667106456],
+            [74.90428883466637, 12.70619044382454],
+            [74.90432218142735, 12.70619044382454],
+            [74.90432218142732, 12.706229366608625],
+            [74.90428883466632, 12.706229667106456]
+          ]
+        ],
+        "type": "Polygon"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Aitsun CCTV Showroom",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            [74.90418590558119, 12.70620509459033],
+            [74.90418447891875, 12.70613418583622],
+            [74.90423155669993, 12.70613418583622],
+            [74.90423123603082, 12.706205477297758],
+            [74.90418590558119, 12.70620509459033]
+          ]
+        ],
+        "type": "Polygon"
+      },
+      "id": 1
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Prasad Tech Support",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            [74.90418646980206, 12.706251624861707],
+            [74.90418646980206, 12.706210997368586],
+            [74.90423123368691, 12.706210997368586],
+            [74.90423123368691, 12.706251624861707],
+            [74.90418646980206, 12.706251624861707]
+          ]
+        ],
+        "type": "Polygon"
+      },
+      "id": 2
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Elevator",
+        "category": "elevator"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            [74.90423876908761, 12.70627264799154],
+            [74.90423876908761, 12.706238448693952],
+            [74.90427789161254, 12.706238448693952],
+            [74.90427789161254, 12.70627264799154],
+            [74.90423876908761, 12.70627264799154]
+          ]
+        ],
+        "type": "Polygon"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ENTRANCE_fatima",
+        "type": "entrance"
+      },
+      "geometry": {
+        "coordinates": [74.90429, 12.70621],
+        "type": "Point"
+      },
+      "id": 4
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "WALKWAY_f1_elevator",
+        "type": "walkway"
+      },
+      "geometry": {
+        "coordinates": [74.90426, 12.70625],
+        "type": "Point"
+      },
+      "id": 5
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "entrance Prasad Tech Support",
+        "type": "entrance"
+      },
+      "geometry": {
+        "coordinates": [74.90423145849104, 12.706219307844918],
+        "type": "Point"
+      },
+      "id": 6
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "entrance Aitsun CCTV Showroom",
+        "type": "entrance"
+      },
+      "geometry": {
+        "coordinates": [74.90423123066097, 12.706185303494578],
+        "type": "Point"
+      },
+      "id": 7
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "walkable region",
+        "type": "walkable_path"
+      },
+      "geometry": {
+        "coordinates": [
+          [74.90428677449952, 12.706189817737439],
+          [74.90428677449952, 12.706236718103014],
+          [74.904233635927, 12.706236718103014],
+          [74.90423312984538, 12.706136252570786],
+          [74.90423844370241, 12.706136746259943],
+          [74.90423743153917, 12.706231534379057],
+          [74.90428120760166, 12.706231781223039],
+          [74.90428323192816, 12.706139214700869],
+          [74.90428753362198, 12.706139214700869],
+          [74.90428677449952, 12.706190805113579]
+        ],
+        "type": "LineString"
+      },
+      "id": 8
+    }
+  ]
+}

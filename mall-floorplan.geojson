@@ -1,0 +1,296 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Building Outline",
+        "level": -1,
+        "height": 0,
+        "base_height": 0,
+        "color": "#334155",
+        "category": "outline",
+        "isOutline": true
+      },
+      "geometry": {
+        "coordinates": [[
+          [74.90433077821731, 12.706129046332137],
+          [74.90433077821731, 12.706285116543711],
+          [74.90417914760243, 12.706289193002874],
+          [74.90417735668976, 12.706127299277114],
+          [74.90423645681116, 12.706129046332137],
+          [74.90423585984027, 12.706231540212954],
+          [74.90427934982779, 12.706231168484067],
+          [74.90427943871742, 12.706129046332137],
+          [74.90433077821731, 12.706129046332137]
+        ]],
+        "type": "Polygon"
+      },
+      "id": 100
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Janaushadi Medical",
+        "level": 0,
+        "height": 4,
+        "base_height": 0,
+        "color": "#22C55E",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [[
+          [74.90428883466637, 12.706223356654746],
+          [74.90428883466637, 12.70619044382454],
+          [74.90432218142735, 12.70619044382454],
+          [74.90432218142735, 12.706223356654746],
+          [74.90428883466637, 12.706223356654746]
+        ]],
+        "type": "Polygon"
+      },
+      "id": 1
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Anandanna Shop",
+        "level": 0,
+        "height": 4,
+        "base_height": 0,
+        "color": "#F59E0B",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [[
+          [74.9041861987408, 12.706258315748656],
+          [74.90418462948156, 12.706199761532332],
+          [74.90422856874261, 12.706199761532332],
+          [74.90422935337224, 12.70625869845675],
+          [74.9041861987408, 12.706258315748656]
+        ]],
+        "type": "Polygon"
+      },
+      "id": 2
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Craftworld",
+        "level": 0,
+        "height": 4,
+        "base_height": 0,
+        "color": "#8B5CF6",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [[
+          [74.90418565586319, 12.706191209239165],
+          [74.90418447891875, 12.70613418583622],
+          [74.90423155669993, 12.70613418583622],
+          [74.90422998744063, 12.70619159194652],
+          [74.90418565586319, 12.706191209239165]
+        ]],
+        "type": "Polygon"
+      },
+      "id": 3
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Storage Annadanna",
+        "level": 0,
+        "height": 4,
+        "base_height": 0,
+        "color": "#6B7280",
+        "category": "storage"
+      },
+      "geometry": {
+        "coordinates": [[
+          [74.90428732349503, 12.70613744402587],
+          [74.9043214548856, 12.706137061318827],
+          [74.90432145488575, 12.706183751620344],
+          [74.90428732349505, 12.7061841343277],
+          [74.90428732349503, 12.70613744402587]
+        ]],
+        "type": "Polygon"
+      },
+      "id": 4
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Elevator",
+        "level": -1,
+        "height": 16,
+        "base_height": 0,
+        "color": "#64748B",
+        "category": "elevator",
+        "isElevator": true
+      },
+      "geometry": {
+        "coordinates": [[
+          [74.90423876908761, 12.70627264799154],
+          [74.90423876908761, 12.706238448693952],
+          [74.90427789161254, 12.706238448693952],
+          [74.90427789161254, 12.70627264799154],
+          [74.90423876908761, 12.70627264799154]
+        ]],
+        "type": "Polygon"
+      },
+      "id": 5
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Stiching Fatima",
+        "level": 1,
+        "height": 8,
+        "base_height": 4,
+        "color": "#EC4899",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [[
+          [74.90428883466632, 12.706229667106456],
+          [74.90428883466637, 12.70619044382454],
+          [74.90432218142735, 12.70619044382454],
+          [74.90432218142732, 12.706229366608625],
+          [74.90428883466632, 12.706229667106456]
+        ]],
+        "type": "Polygon"
+      },
+      "id": 11
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Aitsun CCTV Showroom",
+        "level": 1,
+        "height": 8,
+        "base_height": 4,
+        "color": "#3B82F6",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [[
+          [74.90418590558119, 12.70620509459033],
+          [74.90418447891875, 12.70613418583622],
+          [74.90423155669993, 12.70613418583622],
+          [74.90423123603082, 12.706205477297758],
+          [74.90418590558119, 12.70620509459033]
+        ]],
+        "type": "Polygon"
+      },
+      "id": 12
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Prasad Tech Support",
+        "level": 1,
+        "height": 8,
+        "base_height": 4,
+        "color": "#10B981",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [[
+          [74.90418646980206, 12.706251624861707],
+          [74.90418646980206, 12.706210997368586],
+          [74.90423123368691, 12.706210997368586],
+          [74.90423123368691, 12.706251624861707],
+          [74.90418646980206, 12.706251624861707]
+        ]],
+        "type": "Polygon"
+      },
+      "id": 13
+    },
+
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Nutrition Saibu",
+        "level": 2,
+        "height": 12,
+        "base_height": 8,
+        "color": "#F97316",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [[
+          [74.90428393041284, 12.706277327965907],
+          [74.90428393041284, 12.706139139201127],
+          [74.90432727771915, 12.706139139201127],
+          [74.90432727771915, 12.706277327965907],
+          [74.90428393041284, 12.706277327965907]
+        ]],
+        "type": "Polygon"
+      },
+      "id": 21
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Aitsun Technologies",
+        "level": 2,
+        "height": 12,
+        "base_height": 8,
+        "color": "#0EA5E9",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [[
+          [74.90418222006522, 12.706280091740283],
+          [74.90418222006522, 12.706136375425231],
+          [74.9042335002126, 12.706136375425231],
+          [74.9042335002126, 12.706280091740283],
+          [74.90418222006522, 12.706280091740283]
+        ]],
+        "type": "Polygon"
+      },
+      "id": 22
+    }
+  ],
+  "navGraph": {
+    "nodes": {
+      "g_janaushadi": {"coords": [74.90428896282114, 12.706204474730228], "floor": 0},
+      "g_storage": {"coords": [74.90428782745101, 12.706158171161235], "floor": 0},
+      "g_craftworld": {"coords": [74.90423014973922, 12.706175122404503], "floor": 0},
+      "g_anandanna": {"coords": [74.9042295438856, 12.70622597277874], "floor": 0},
+      "g_walkway_center": {"coords": [74.90425915, 12.706184], "floor": 0},
+      "g_elevator": {"coords": [74.90426, 12.70625], "floor": 0},
+
+      "f1_fatima": {"coords": [74.90429, 12.70621], "floor": 1},
+      "f1_prasad": {"coords": [74.90423145849104, 12.706219307844918], "floor": 1},
+      "f1_aitsun_cctv": {"coords": [74.90423123066097, 12.706185303494578], "floor": 1},
+      "f1_walkway_center": {"coords": [74.90425915, 12.706210], "floor": 1},
+      "f1_elevator": {"coords": [74.90426, 12.70625], "floor": 1},
+
+      "f2_nutrition": {"coords": [74.90428572717082, 12.706245950472379], "floor": 2},
+      "f2_aitsun_tech": {"coords": [74.90423228373015, 12.706254716474518], "floor": 2},
+      "f2_walkway_center": {"coords": [74.90425915, 12.706250], "floor": 2},
+      "f2_elevator": {"coords": [74.90426, 12.70625], "floor": 2}
+    },
+    "edges": [
+      ["g_janaushadi", "g_walkway_center"],
+      ["g_storage", "g_walkway_center"],
+      ["g_craftworld", "g_walkway_center"],
+      ["g_anandanna", "g_walkway_center"],
+      ["g_walkway_center", "g_elevator"],
+
+      ["f1_fatima", "f1_walkway_center"],
+      ["f1_prasad", "f1_walkway_center"],
+      ["f1_aitsun_cctv", "f1_walkway_center"],
+      ["f1_walkway_center", "f1_elevator"],
+
+      ["f2_nutrition", "f2_walkway_center"],
+      ["f2_aitsun_tech", "f2_walkway_center"],
+      ["f2_walkway_center", "f2_elevator"],
+
+      ["g_elevator", "f1_elevator"],
+      ["f1_elevator", "f2_elevator"]
+    ]
+  }
+}

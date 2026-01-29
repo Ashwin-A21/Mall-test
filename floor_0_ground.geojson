@@ -1,0 +1,181 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Janaushadi Medical",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            [74.90428883466637, 12.706223356654746],
+            [74.90428883466637, 12.70619044382454],
+            [74.90432218142735, 12.70619044382454],
+            [74.90432218142735, 12.706223356654746],
+            [74.90428883466637, 12.706223356654746]
+          ]
+        ],
+        "type": "Polygon"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Anandanna Shop",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            [74.9041861987408, 12.706258315748656],
+            [74.90418462948156, 12.706199761532332],
+            [74.90422856874261, 12.706199761532332],
+            [74.90422935337224, 12.70625869845675],
+            [74.9041861987408, 12.706258315748656]
+          ]
+        ],
+        "type": "Polygon"
+      },
+      "id": 1
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Craftworld",
+        "category": "store"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            [74.90418565586319, 12.706191209239165],
+            [74.90418447891875, 12.70613418583622],
+            [74.90423155669993, 12.70613418583622],
+            [74.90422998744063, 12.70619159194652],
+            [74.90418565586319, 12.706191209239165]
+          ]
+        ],
+        "type": "Polygon"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Storage Annadanna",
+        "category": "storage"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            [74.90428732349503, 12.70613744402587],
+            [74.9043214548856, 12.706137061318827],
+            [74.90432145488575, 12.706183751620344],
+            [74.90428732349505, 12.7061841343277],
+            [74.90428732349503, 12.70613744402587]
+          ]
+        ],
+        "type": "Polygon"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Elevator",
+        "category": "elevator"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            [74.90423876908761, 12.70627264799154],
+            [74.90423876908761, 12.706238448693952],
+            [74.90427789161254, 12.706238448693952],
+            [74.90427789161254, 12.70627264799154],
+            [74.90423876908761, 12.70627264799154]
+          ]
+        ],
+        "type": "Polygon"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "WALKWAY_to_elevator",
+        "type": "walkway"
+      },
+      "geometry": {
+        "coordinates": [74.90426, 12.70625],
+        "type": "Point"
+      },
+      "id": 5
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "entrence to janaushadi",
+        "type": "entrance"
+      },
+      "geometry": {
+        "coordinates": [74.90428896282114, 12.706204474730228],
+        "type": "Point"
+      },
+      "id": 6
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "entrance to storage",
+        "type": "entrance"
+      },
+      "geometry": {
+        "coordinates": [74.90428782745101, 12.706158171161235],
+        "type": "Point"
+      },
+      "id": 7
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "entrance to craftworld",
+        "type": "entrance"
+      },
+      "geometry": {
+        "coordinates": [74.90423014973922, 12.706175122404503],
+        "type": "Point"
+      },
+      "id": 8
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "entrance to annadanas shop",
+        "type": "entrance"
+      },
+      "geometry": {
+        "coordinates": [74.9042295438856, 12.70622597277874],
+        "type": "Point"
+      },
+      "id": 9
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "walkable area for ground floor",
+        "type": "walkable_area"
+      },
+      "geometry": {
+        "coordinates": [
+          [
+            [74.90423648069205, 12.706231889950061],
+            [74.90423648069205, 12.706136157752567],
+            [74.90428181422789, 12.706136157752567],
+            [74.90428181422789, 12.706231889950061],
+            [74.90423648069205, 12.706231889950061]
+          ]
+        ],
+        "type": "Polygon"
+      },
+      "id": 10
+    }
+  ]
+}
