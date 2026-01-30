@@ -202,7 +202,11 @@ function initMap() {
 // ===== Add Floorplan Layers =====
 function addFloorplanLayers() {
   // Assign IDs for feature state
+  // Assign IDs for feature state
   floorplanData.features = floorplanData.features.map((feature, index) => {
+    // Ensure properties exists
+    if (!feature.properties) feature.properties = {};
+    feature.properties.id = index;
     return { ...feature, id: index };
   });
 
@@ -240,7 +244,7 @@ function addFloorplanLayers() {
     },
   });
 
-  // Create 3D labels using HTML markers on top of extrusions
+  // Create 3D labels using HTML markers with altitude-aware offsets
   addStoreLabels();
 
   updateFloorFilter(currentFloor);
@@ -288,6 +292,7 @@ function addStoreLabels() {
       box-shadow: 0 2px 6px rgba(0,0,0,0.5);
     `;
 
+    // Initialize marker without offset first
     const marker = new maplibregl.Marker({
       element: el,
       anchor: 'bottom'
@@ -300,7 +305,9 @@ function addStoreLabels() {
       level: props.level, 
       element: el, 
       centroid,
-      height: props.height || 0
+      height: props.height || 0,
+      base_height: props.base_height || 0,
+      id: feature.id
     });
   });
 
@@ -311,59 +318,40 @@ function addStoreLabels() {
   map.on('pitch', updateLabelPositions);
 }
 
-function updateLabelPositions() {
-  const pitch = map.getPitch();
-  const zoom = map.getZoom();
-  
-  // Scale factor based on zoom (labels move more at higher zoom)
+// ===== Helper: Calculate 3D Altitude in Pixels =====
+function calculatePixelAltitude(height, zoom, pitch) {
+  // Formula: height * pxPerMeter * pitchFactor
+  // pxPerMeter = 1.7 * 2^(zoom - 18)
   const zoomScale = Math.pow(2, zoom - 18);
+  const pxPerMeter = 1.7 * zoomScale;
+  const pitchFactor = Math.cos(pitch * Math.PI / 180);
   
-  storeMarkers.forEach(({ marker, element, height }) => {
-    // Fixed offset: 15 pixels per meter of height, scaled by zoom
-    // Ground floor (4m) = 60px, Floor 1 (8m) = 120px, Floor 2 (12m) = 180px
-    const baseOffset = height * 15 * zoomScale;
-    
-    // Pitch adjustment: reduce offset when looking straight down
-    const pitchMultiplier = 0.3 + (pitch / 90) * 0.7;
-    const totalOffset = baseOffset * pitchMultiplier;
-    
-    // Apply vertical offset via CSS transform
-    element.style.transform = `translateY(${-totalOffset}px)`;
-  });
+  return height * pxPerMeter * pitchFactor;
 }
 
-function updateLabelVisibility(floor) {
-  storeMarkers.forEach(({ marker, level, element }) => {
-    if (floor === -1 || level === floor || level === -1) {
-      element.style.display = 'block';
-    } else {
-      element.style.display = 'none';
+// ===== Update Label Positions (3D Altitude Logic) =====
+function updateLabelPositions() {
+  const zoom = map.getZoom();
+  const pitch = map.getPitch();
+  
+  // Combine both marker sets
+  const allMarkers = [...storeMarkers, ...navigationMarkers];
+
+  allMarkers.forEach(({ marker, height, base_height }) => {
+    // Total height of the roof relative to ground
+    const totalHeight = (base_height || 0) + (height || 0);
+    const pixelLift = calculatePixelAltitude(totalHeight, zoom, pitch);
+    
+    // Safety check
+    if (!isNaN(pixelLift)) {
+         marker.setOffset([0, -pixelLift]);
     }
   });
 }
 
-// ===== Update Floor Filter =====
-function updateFloorFilter(floor) {
-  if (!map.getLayer("room-extrusion")) return;
+// (Original updateLabelPositions and updateLabelVisibility removed - using updated versions at end of file)
 
-  if (floor === -1) {
-    // Show all floors
-    map.setFilter("room-extrusion", null);
-  } else {
-    // Show selected floor + elevator (level -1)
-    const floorFilter = [
-      "any",
-      ["==", ["get", "level"], floor],
-      ["==", ["get", "level"], -1]  // Always show elevator
-    ];
-    map.setFilter("room-extrusion", floorFilter);
-  }
-
-  // Update label visibility
-  updateLabelVisibility(floor);
-
-  currentFloor = floor;
-}
+// ===== Update Floor Filter (Original Removed) =====
 
 // ===== Handle Room Click =====
 function handleRoomClick(e) {
@@ -587,6 +575,7 @@ function calculateNavigation() {
   });
 
   // Calculate estimated time
+  // Calculate estimated time
   const distance = calculateTotalDistance(pathCoords);
   const walkingSpeed = 1.4; // m/s
   const floorChangePenalty = Math.abs(toLevel - fromLevel) * 45;
@@ -599,18 +588,30 @@ function calculateNavigation() {
   });
 
   displayNavigationResult(instructions);
-  drawAnimatedPath(pathCoords);
+  drawAnimatedPath(pathCoords, pathNodes);
   
-  // Show path on appropriate floor
-  if (fromLevel === toLevel) {
-    setFloor(fromLevel);
-  } else {
-    setFloor(-1); // Show all floors for multi-floor navigation
-  }
-}
+  // Show path on appropriate floors
+  // Strategy: ALWAYS show the FROM floor layout, plus the TO Room
+  
+  const fromId = fromFeature.id;
+  const toId = toFeature.id;
+  
+  // We want to see the layout of the start floor.
+  // And we want to see the destination room regardless of floor.
+  // AND the start room (which is on start floor anyway).
+  
+  updateFloorFilter([fromLevel], [toId, fromId]);
 
-// ===== Generate Path Coordinates (Deprecated, removed) =====
-// Function removed in favor of graph-based pathfinding
+  // Highlight Start and End Rooms
+  highlightFeature(fromFeature.id, true);
+  highlightFeature(toFeature.id, true);
+  
+  // Manually ensure the destination label is visible
+  // We need to look up marker for toId.
+  // Since we don't have direct ID map, matching by centroid or loop
+  // Simple fix: Force show all markers on involved floors or just dest
+  // For now, let's update storeMarkers to allow finding by ID if we add it or just loop
+}
 
 // ===== Calculate Total Distance =====
 function calculateTotalDistance(coords) {
@@ -619,6 +620,34 @@ function calculateTotalDistance(coords) {
     total += calculateDistance(coords[i - 1], coords[i]) * 1000; // Convert km to m
   }
   return total;
+}
+
+// ===== Calculate Distance (Haversine) =====
+function calculateDistance(coord1, coord2) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(coord2[1] - coord1[1]);
+  const dLon = deg2rad(coord2[0] - coord1[0]);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(coord1[1])) *
+      Math.cos(deg2rad(coord2[1])) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
+}
+
+// ===== Highlight Feature =====
+function highlightFeature(id, isActive) {
+    if (id === undefined || id === null) return;
+    map.setFeatureState(
+        { source: "floorplan", id: id },
+        { highlight: isActive }
+    );
 }
 
 // ===== Display Navigation Result =====
@@ -638,204 +667,347 @@ function displayNavigationResult(instructions) {
 }
 
 // ===== Draw Animated Navigation Path =====
-function drawAnimatedPath(coordinates) {
-  // Stop any existing animation
+// (Removed duplicate drawAnimatedPath)
+  
+// ===== Add Navigation Markers =====
+let navigationMarkers = [];
+
+function addNavigationMarkers(coordinates, pathNodes) {
+  const startNode = pathNodes[0];
+  const endNode = pathNodes[pathNodes.length - 1];
+
+  // Identify elevator points (where floor changes)
+  const elevatorNodes = [];
+  for(let i=1; i<pathNodes.length; i++) {
+      if (pathNodes[i].floor !== pathNodes[i-1].floor) {
+          // Add the node before the change (or after, just one per transition)
+          elevatorNodes.push(pathNodes[i-1]); 
+      }
+  }
+
+  const markersToCreate = [
+    { type: "start", node: startNode, color: "#22C55E", label: "Start" },
+    { type: "end", node: endNode, color: "#EF4444", label: "End" }
+  ];
+
+  elevatorNodes.forEach(node => {
+      markersToCreate.push({ type: "elevator", node: node, color: "#F59E0B", label: "Elevator" });
+  });
+
+  markersToCreate.forEach(m => {
+      const el = document.createElement('div');
+      el.className = 'nav-marker-dot';
+      el.style.cssText = `
+        width: 20px;
+        height: 20px;
+        background: ${m.color};
+        border: 2px solid white;
+        border-radius: 50%;
+        box-shadow: 0 0 10px ${m.color};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 5;
+      `;
+      
+      const inner = document.createElement('div');
+      inner.style.cssText = "width: 6px; height: 6px; background: white; border-radius: 50%;";
+      el.appendChild(inner);
+
+      const level = m.node.floor === -1 ? 0 : m.node.floor; 
+      const baseHeight = level * 4; 
+
+      const marker = new maplibregl.Marker({
+          element: el,
+          anchor: 'bottom'
+      })
+      .setLngLat(m.node.coords)
+      .addTo(map);
+
+      navigationMarkers.push({
+          marker,
+          element: el,
+          level: level,
+          height: 0,
+          base_height: baseHeight // Store base height
+      });
+  });
+  
+  updateLabelPositions();
+}
+
+// ===== Draw Animated Navigation Path =====
+let navMarker = null;
+let navSegments = [];
+
+function drawAnimatedPath(coordinates, pathNodes) {
+  // Stop existing animation
   if (animationId) {
     cancelAnimationFrame(animationId);
     animationId = null;
   }
-
-  // Remove existing navigation layers
+  
   clearNavigationPath();
+  if (navMarker) {
+      navMarker.remove();
+      navMarker = null;
+  }
 
-  // Add navigation route source
-  map.addSource("nav-route", {
-    type: "geojson",
-    data: {
-      type: "Feature",
-      geometry: {
-        type: "LineString",
-        coordinates: coordinates,
-      },
-    },
+  // 1. Split path into segments per floor
+  const segments = { 0: [], 1: [], 2: [] };
+  let lastFloor = -1;
+  
+  pathNodes.forEach((node, i) => {
+      const floor = node.floor;
+      if (floor === undefined || floor === -1) {
+          if (lastFloor !== -1) segments[lastFloor].push(node.coords);
+      } else {
+          if (!segments[floor]) segments[floor] = [];
+          segments[floor].push(node.coords);
+          lastFloor = floor;
+      }
   });
 
-  // Background line (static) - Raised above floor
-  map.addLayer({
-    id: "nav-line-bg",
-    type: "line",
-    source: "nav-route",
-    layout: {
-      "line-cap": "round",
-      "line-join": "round",
-    },
-    paint: {
-      "line-color": "#1E3A5F",
-      "line-width": 10,
-      "line-opacity": 0.8,
-      "line-translate": [0, -10], // Visual lift
-      "line-translate-anchor": "viewport"
-    },
+  // Create sources and layers
+  Object.keys(segments).forEach(floor => {
+      const coords = segments[floor];
+      if (coords.length < 2) return;
+      
+      const layerId = `nav-route-${floor}`;
+      map.addSource(layerId, {
+          type: "geojson",
+          data: {
+              type: "Feature",
+              geometry: { type: "LineString", coordinates: coords }
+          }
+      });
+      
+      map.addLayer({
+          id: `${layerId}-bg`,
+          type: "line",
+          source: layerId,
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: {
+              "line-color": "#1E3A5F",
+              "line-width": 10,
+              "line-opacity": 0.8,
+              "line-translate": [0, 0], 
+              "line-translate-anchor": "viewport"
+          }
+      });
+      
+      map.addLayer({
+          id: `${layerId}-line`,
+          type: "line",
+          source: layerId,
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: {
+              "line-color": "#F97316",
+              "line-width": 5,
+              "line-dasharray": [0, 2, 2],
+              "line-translate": [0, 0],
+              "line-translate-anchor": "viewport"
+          }
+      });
   });
+  
+  updatePathAltitude();
+  // Events hooked in addFloorplanLayers or initMap mostly, but ensuring here doesn't hurt.
+  // Actually avoid duplicate listeners if possible.
 
-  // Animated dashed line
-  map.addLayer({
-    id: "nav-line",
-    type: "line",
-    source: "nav-route",
-    layout: {
-      "line-cap": "round",
-      "line-join": "round",
-    },
-    paint: {
-      "line-color": "#F97316",
-      "line-width": 5,
-      "line-dasharray": [0, 2, 2],
-      "line-translate": [0, -10], // Visual lift
-      "line-translate-anchor": "viewport"
-    },
-  });
+  // Add animated avatar marker
+  const el = document.createElement('div');
+  el.className = 'nav-avatar';
+  el.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="7" r="4"></circle>
+      <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"></path>
+    </svg>
+  `;
+  el.style.cssText = `
+      width: 32px;
+      height: 32px;
+      background: #F97316;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 10px rgba(249, 115, 22, 0.6);
+      z-index: 10;
+      transition: transform 0.1s; 
+  `;
 
-  // Glow effect
-  map.addLayer({
-    id: "nav-line-glow",
-    type: "line",
-    source: "nav-route",
-    layout: {
-      "line-cap": "round",
-      "line-join": "round",
-    },
-    paint: {
-      "line-color": "#FBBF24",
-      "line-width": 15,
-      "line-opacity": 0.4,
-      "line-blur": 5,
-      "line-translate": [0, -10], // Visual lift
-      "line-translate-anchor": "viewport"
-    },
-  });
+  navMarker = new maplibregl.Marker({
+      element: el,
+      anchor: 'bottom',
+      offset: [0, 0]
+  })
+  .setLngLat(coordinates[0])
+  .addTo(map);
 
-  // Add start and end markers
-  addNavigationMarkers(coordinates);
+  addNavigationMarkers(coordinates, pathNodes);
 
-  // Start animation
-  animatePath();
+  // Animation Loop
+  let startTime = null;
+  const totalDist = calculateTotalDistance(coordinates);
+  
+  function animate(timestamp) {
+      if (!startTime) startTime = timestamp;
+      let progress = (timestamp - startTime) / 10000;
+      if (progress > 1) { startTime = timestamp; progress = 0; }
+      
+      const currentDist = progress * totalDist;
+      const navPoint = getNavPointAtDistance(pathNodes, currentDist); 
+      
+      if (navPoint) {
+          navMarker.setLngLat(navPoint.coords);
+          
+          // UNIFIED 3D OFFSET LOGIC
+          const zoom = map.getZoom();
+          const pitch = map.getPitch();
+          
+          // Match the formula used in updateLabelPositions (lines 325-341)
+          const zoomScale = Math.pow(2, zoom - 18);
+          const pxPerMeter = 1.7 * zoomScale;
+          const pitchFactor = Math.cos(pitch * Math.PI / 180);
+          
+          let floorHeight = 0;
+          if (navPoint.floor === 1) floorHeight = 4;
+          if (navPoint.floor === 2) floorHeight = 8;
+          
+          const pixelLift = floorHeight * pxPerMeter * pitchFactor;
+          
+          navMarker.setOffset([0, -pixelLift]);
+          
+          // Animate dashes
+          dashOffset -= 0.5;
+          [0, 1, 2].forEach(f => {
+              if (map.getLayer(`nav-route-${f}-line`)) {
+                 map.setPaintProperty(`nav-route-${f}-line`, 'line-dashoffset', -dashOffset);
+              }
+          });
+      }
+      animationId = requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
 
-  // Fit map to show the entire path
   const bounds = coordinates.reduce(
     (bounds, coord) => bounds.extend(coord),
     new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
   );
-
-  map.fitBounds(bounds, {
-    padding: { top: 100, bottom: 150, left: 50, right: 350 },
-    pitch: 50,
-    duration: 1200,
-  });
+  map.fitBounds(bounds, { padding: 100, pitch: 50 });
 }
 
-// ===== Add Navigation Markers =====
-function addNavigationMarkers(coordinates) {
-  // Add intermediate markers ( Elevator )
-  const elevatorPoints = coordinates.filter((coord, index) => {
-    // Simple heuristic: if this point is the elevator location
-    // In a real app we would track node types in the path
-    const isElevator = 
-        Math.abs(coord[0] - 75.0052) < 0.0001 && 
-        Math.abs(coord[1] - 12.5022) < 0.0001;
-    // Only add if it's not start or end
-    return isElevator && index !== 0 && index !== coordinates.length - 1;
-  });
-
-  const markers = [
-    { type: "start", coords: startCoord },
-    { type: "end", coords: endCoord }
-  ];
-
-  elevatorPoints.forEach(coord => {
-      markers.push({ type: "elevator", coords: coord });
-  });
-
-  map.addSource("nav-markers", {
-    type: "geojson",
-    data: {
-      type: "FeatureCollection",
-      features: markers.map(m => ({
-        type: "Feature",
-        properties: { type: m.type },
-        geometry: { type: "Point", coordinates: m.coords },
-      })),
-    },
-  });
-
-  map.addLayer({
-    id: "nav-markers",
-    type: "circle",
-    source: "nav-markers",
-    paint: {
-      "circle-radius": [
-          "match", ["get", "type"],
-          "elevator", 12,
-          10
-      ],
-      "circle-color": [
-        "match",
-        ["get", "type"],
-        "start", "#22C55E",
-        "end", "#EF4444",
-        "elevator", "#F59E0B",
-        "#F97316",
-      ],
-      "circle-stroke-width": 3,
-      "circle-stroke-color": "#ffffff",
-    },
-  });
-
-  map.addLayer({
-    id: "nav-markers-pulse",
-    type: "circle",
-    source: "nav-markers",
-    paint: {
-      "circle-radius": 20,
-      "circle-color": [
-        "match",
-        ["get", "type"],
-        "start",
-        "#22C55E",
-        "end",
-        "#EF4444",
-        "#F97316",
-      ],
-      "circle-opacity": 0.3,
-    },
-  });
+// ===== Update Line Path Altitude =====
+function updatePathAltitude() {
+    const zoom = map.getZoom();
+    const pitch = map.getPitch();
+    
+    // Heights: G=0, F1=4m, F2=8m
+    const lifts = { 0: 0, 1: 4, 2: 8 };
+    
+    [0, 1, 2].forEach(floor => {
+        const height = lifts[floor];
+        // Use unified helper for pixel offset (negative to lift up in 2D map space? No, translate Y negative is UP on screen)
+        // Wait, MapLibre line-translate is in pixels. Positive Y is down.
+        // User formula provided standard "lift" pixel count (positive).
+        // So we need negative offset.
+        const offset = -calculatePixelAltitude(height, zoom, pitch);
+        
+        const layerId = `nav-route-${floor}`;
+        
+        if (!isNaN(offset)) {
+            if (map.getLayer(`${layerId}-bg`)) {
+                map.setPaintProperty(`${layerId}-bg`, 'line-translate', [0, offset]);
+                map.setPaintProperty(`${layerId}-line`, 'line-translate', [0, offset]);
+            }
+        }
+    });
 }
 
-// ===== Animate Path =====
-function animatePath() {
-  dashOffset += 0.5;
-  
-  if (map.getLayer("nav-line")) {
-    map.setPaintProperty("nav-line", "line-dasharray", [
-      0,
-      2 + (dashOffset % 4),
-      2,
-    ]);
+// ===== Get Navigation Point at Distance (Interpolation) =====
+function getNavPointAtDistance(nodes, dist) {
+    let d = 0;
+    for (let i = 0; i < nodes.length - 1; i++) {
+        const segD = calculateDistance(nodes[i].coords, nodes[i+1].coords) * 1000;
+        if (d + segD >= dist) {
+            const r = (dist - d) / segD;
+            return {
+                coords: [
+                    nodes[i].coords[0] + (nodes[i+1].coords[0] - nodes[i].coords[0]) * r,
+                    nodes[i].coords[1] + (nodes[i+1].coords[1] - nodes[i].coords[1]) * r
+                ],
+                floor: nodes[i].floor
+            };
+        }
+        d += segD;
+    }
+    return nodes[nodes.length-1];
+}
+
+// ===== Update Floor Filter (Revised) =====
+function updateFloorFilter(floors, specialIds = []) {
+  if (!map.getLayer("room-extrusion")) return;
+
+  const activeFloors = Array.isArray(floors) ? floors : [floors];
+  const isAll = floors === -1;
+
+  // Combine markers for filtering
+  const allMarkers = [...storeMarkers, ...navigationMarkers];
+
+  if (isAll) {
+    map.setFilter("room-extrusion", null);
+    allMarkers.forEach((item) => {
+        item.element.style.display = ''; 
+    });
+  } else {
+    // Show: 
+    // 1. All rooms on activeFloors
+    // 2. Elevator (level -1)
+    // 3. SPECIAL IDs (Start/Dest rooms) regardless of floor
+    
+    const filter = [
+        "any",
+        ["in", "level", ...activeFloors],
+        ["==", "level", -1],
+    ];
+    
+    if (specialIds.length > 0) {
+        filter.push(["in", "id", ...specialIds]);
+    }
+    
+    map.setFilter("room-extrusion", filter);
+    
+    // Update marker visibility
+    allMarkers.forEach((item) => {
+        const isOnActiveFloor = activeFloors.includes(item.level) || item.level === -1;
+        // Check ID match.
+        // We ensure item.id is set in addStoreLabels.
+        const isSpecial = item.id && specialIds.includes(item.id);
+        
+        if (isOnActiveFloor || isSpecial) {
+             item.element.style.display = ''; 
+        } else {
+             item.element.style.display = 'none';
+        }
+    });
   }
-
-  animationId = requestAnimationFrame(animatePath);
-}
+} // End updateFloorFilter
 
 // ===== Clear Navigation Path =====
 function clearNavigationPath() {
   const layersToRemove = [
-    "nav-line",
-    "nav-line-bg",
-    "nav-line-glow",
-    "nav-markers",
-    "nav-markers-pulse",
+    "nav-line", "nav-line-bg", "nav-line-glow", // Legacy layers just in case
   ];
-  const sourcesToRemove = ["nav-route", "nav-markers"];
+  const sourcesToRemove = ["nav-route"]; // Legacy sources
+
+  // Clean up per-floor segment layers and sources
+  [0, 1, 2].forEach(floor => {
+      layersToRemove.push(`nav-route-${floor}-line`);
+      layersToRemove.push(`nav-route-${floor}-bg`);
+      sourcesToRemove.push(`nav-route-${floor}`);
+  });
 
   layersToRemove.forEach((layer) => {
     if (map.getLayer(layer)) map.removeLayer(layer);
@@ -844,30 +1016,23 @@ function clearNavigationPath() {
   sourcesToRemove.forEach((source) => {
     if (map.getSource(source)) map.removeSource(source);
   });
+  
+  // Remove HTML markers
+  if (navigationMarkers) {
+      navigationMarkers.forEach(m => m.marker.remove());
+      navigationMarkers = [];
+  }
+  
+  // Remove avatar
+  if (navMarker) {
+      navMarker.remove();
+      navMarker = null;
+  }
 
   if (animationId) {
     cancelAnimationFrame(animationId);
     animationId = null;
   }
-}
-
-// ===== Calculate Distance (Haversine) =====
-function calculateDistance(coord1, coord2) {
-  const R = 6371;
-  const dLat = toRad(coord2[1] - coord1[1]);
-  const dLon = toRad(coord2[0] - coord1[0]);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(coord1[1])) *
-      Math.cos(toRad(coord2[1])) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function toRad(deg) {
-  return (deg * Math.PI) / 180;
 }
 
 // ===== Set Floor =====
