@@ -502,9 +502,9 @@ function findNodeByName(name) {
   if (feature) {
     const level = feature.properties.level;
     // Return the nearest corridor node on that floor
-    if (level === 0) return "g_center";
-    if (level === 1) return "f1_center";
-    if (level === 2) return "f2_center";
+    if (level === 0) return "g_walkway_center";
+    if (level === 1) return "f1_walkway_center";
+    if (level === 2) return "f2_walkway_center";
   }
   
   return null;
