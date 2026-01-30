@@ -996,11 +996,13 @@ function updateFloorFilter(floors, specialIds = []) {
 } // End updateFloorFilter
 
 // ===== Clear Navigation Path =====
+// ===== Clear NavigationPath =====
 function clearNavigationPath() {
   const layersToRemove = [
-    "nav-line", "nav-line-bg", "nav-line-glow", // Legacy layers just in case
+    "nav-line", "nav-line-bg", "nav-line-glow", 
+    "nav-vertical-extrusion" // Added vertical layer
   ];
-  const sourcesToRemove = ["nav-route"]; // Legacy sources
+  const sourcesToRemove = ["nav-route", "nav-vertical"]; // Added vertical source
 
   // Clean up per-floor segment layers and sources
   [0, 1, 2].forEach(floor => {
