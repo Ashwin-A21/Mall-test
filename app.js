@@ -491,9 +491,17 @@ function findNodeByName(name) {
   const nameLower = name.toLowerCase().replace(/[^a-z0-9]/g, "");
   
   for (const [nodeId, node] of Object.entries(navGraph.nodes)) {
+    // Existing check
     const nodeIdClean = nodeId.toLowerCase().replace(/[^a-z0-9]/g, "");
     if (nodeIdClean.includes(nameLower) || nameLower.includes(nodeIdClean)) {
       return nodeId;
+    }
+
+    // New check: strip prefix (g_, f1_, f2_) to match core name
+    // e.g. "g_anandanna" -> "anandanna", matches "Anandanna Shop"
+    const nodeIdWithoutPrefix = nodeId.replace(/^[gf]\d?_/, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (nodeIdWithoutPrefix.length >= 3 && (nameLower.includes(nodeIdWithoutPrefix) || nodeIdWithoutPrefix.includes(nameLower))) {
+       return nodeId;
     }
   }
   
