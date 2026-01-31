@@ -223,7 +223,7 @@ function initMap() {
             "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
           ],
           tileSize: 256,
-          attribution: '&copy; OSM, &copy; CARTO'
+          attribution: '&copy; Aitsun Blueprint | Security Clearance Required'
         },
       },
       layers: [
@@ -554,12 +554,19 @@ function populateNavigationOptions() {
         f.properties.category !== "wall" &&
         !f.properties.isOutline &&
         f.properties.name && 
-        f.properties.name !== "object" &&
-        f.properties.name !== "wall_extrude"
+        f.properties.name !== "wall_extrude" &&
+        // Ensure we include level -1 items but filter out tactical clutter
+        (function() {
+          if (f.properties.level === -1) {
+             const excludedCategories = ['security', 'staff', 'furniture', 'surveillance', 'label', 'wall'];
+             return !excludedCategories.includes(f.properties.category);
+          }
+          return true; // Include all other levels normally
+        })()
     )
     .map((f) => ({
       name: f.properties.name,
-      level: f.properties.level,
+      level: f.properties.level !== undefined ? f.properties.level : 0,
       category: f.properties.category,
     }))
     .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
@@ -567,9 +574,14 @@ function populateNavigationOptions() {
   elements.navFrom.innerHTML = '<option value="">Select starting point...</option>';
   elements.navTo.innerHTML = '<option value="">Select destination...</option>';
 
-  const floorNames = ["Ground Floor", "First Floor", "Second Floor"];
+  const floorNames = {
+    "-1": "Target Sector",
+    "0": "Ground Floor",
+    "1": "First Floor",
+    "2": "Second Floor"
+  };
 
-  [0, 1, 2].forEach((level) => {
+  [-1, 0, 1, 2].forEach((level) => {
     const floorLocations = locations.filter((l) => l.level === level);
     if (floorLocations.length > 0) {
       const optGroup = document.createElement("optgroup");
@@ -637,6 +649,14 @@ function findNodeByName(name) {
       return nodeId;
     }
 
+    // Check explicit node name property if it exists
+    if (node.name) {
+       const nodeNameClean = node.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+       if (nodeNameClean === nameLower) {
+         return nodeId;
+       }
+    }
+
     // New check: strip prefix (g_, f1_, f2_) to match core name
     // e.g. "g_anandanna" -> "anandanna", matches "Anandanna Shop"
     const nodeIdWithoutPrefix = nodeId.replace(/^[gf]\d?_/, "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -653,6 +673,7 @@ function findNodeByName(name) {
     if (level === 0) return "g_walkway_center";
     if (level === 1) return "f1_walkway_center";
     if (level === 2) return "f2_walkway_center";
+    if (level === -1) return "g_secret_bunker"; // Target Sector Default Node
   }
   
   return null;

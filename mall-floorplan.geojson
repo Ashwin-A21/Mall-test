@@ -699,6 +699,16 @@
           12.70625
         ],
         "floor": 2
+      },
+      "g_ref_entrance": {
+        "coords": [74.90348, 12.70736], 
+        "floor": 0,
+        "name": "Target Building Entrance"
+      },
+      "g_secret_bunker": {
+        "coords": [74.90347, 12.70744], 
+        "floor": 0,
+        "name": "Basement secret room"
       }
     },
     "edges": [
@@ -757,6 +767,14 @@
       [
         "f1_elevator",
         "f2_elevator"
+      ],
+      [
+        "g_walkway_center",
+        "g_ref_entrance"
+      ],
+      [
+        "g_ref_entrance",
+        "g_secret_bunker"
       ]
     ]
   }
