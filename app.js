@@ -229,7 +229,15 @@ function addFloorplanLayers() {
   floorplanData.features = floorplanData.features.map((feature, index) => {
     // Ensure properties exists
     if (!feature.properties) feature.properties = {};
+    
+    // Assign defaults for missing properties to prevent MapLibre errors
     feature.properties.id = index;
+    if (feature.properties.color === undefined) feature.properties.color = "#cccccc";
+    if (feature.properties.height === undefined) feature.properties.height = 3;
+    if (feature.properties.base_height === undefined) feature.properties.base_height = 0;
+    if (feature.properties.level === undefined) feature.properties.level = 0;
+    if (feature.properties.category === undefined) feature.properties.category = "common";
+
     return { ...feature, id: index };
   });
 
