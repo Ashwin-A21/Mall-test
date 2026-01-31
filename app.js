@@ -649,7 +649,8 @@ function calculateNavigation() {
   // And we want to see the destination room regardless of floor.
   // AND the start room (which is on start floor anyway).
   
-  updateFloorFilter([fromLevel], [toId, fromId]);
+  // Ensure elevator is hidden during navigation
+  updateFloorFilter([fromLevel], [toId, fromId], true);
 
   // Highlight Start and End Rooms
   highlightFeature(fromFeature.id, true);
@@ -1303,23 +1304,24 @@ function updateFloorFilter(floors, specialIds = [], hideElevator = false) {
         ["in", ["get", "level"], ["literal", activeFloors]]
     ];
     
-    if (!hideElevator) {
-        visibilityGroup.push(["==", ["get", "level"], -1]);
-    }
+    // Always include level -1 (Walls, Building Outline) so the structure is visible
+    visibilityGroup.push(["==", ["get", "level"], -1]);
     
     // Construct final filter
-    let finalFilter;
+    finalFilter = [
+        "all",
+        visibilityGroup
+    ];
+    
+    // Explicitly hide elevator if requested (during navigation)
     if (hideElevator) {
-        // Strict exclusion of elevator features
-        finalFilter = [
-            "all",
-            visibilityGroup,
-            ["!=", ["get", "category"], "elevator"],
-            ["!", ["in", "Elevator", ["get", "name"]]]
-        ];
-    } else {
-        finalFilter = visibilityGroup;
+        finalFilter.push(["!=", ["get", "category"], "elevator"]);
+        finalFilter.push(["!", ["in", "Elevator", ["get", "name"]]]);
     }
+    
+    /* 
+    if (hideElevator) { ... } // Logic removed: Always hide solid elevator
+    */
     
     if (specialIds.length > 0) {
         // If special IDs exist, they must be included via OR (any) with the main logic?
