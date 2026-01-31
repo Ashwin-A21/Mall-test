@@ -1691,7 +1691,8 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "logo"
+        "name": "logo_circle",
+        "color": "#40C4FF"
       },
       "geometry": {
         "type": "Polygon",
@@ -1965,7 +1966,8 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "logo"
+        "name": "logo_polygon",
+        "color": "#8a0000"
       },
       "geometry": {
         "coordinates": [

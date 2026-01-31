@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kerala Mall 3D Map</title>
+    <title>Aitsun blueprint</title>
     
     <!-- MapLibre GL JS -->
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
@@ -22,16 +22,21 @@
     <!-- Header -->
     <div class="header">
         <div class="logo">
-            <span class="logo-icon">🏢</span>
-            <h1>Cloud 9 Map</h1>
+            <div class="logo-icon custom-svg-icon">
+                <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="45" fill="#40C4FF" />
+                    <polygon points="50,15 85,80 15,80" fill="#8a0000" opacity="0.8" />
+                </svg>
+            </div>
+            <h1>AITSUN BLUEPRINT</h1>
         </div>
         <div class="location-badge">
-            <span class="icon">📍</span> Hosangadi, Kerala-671323 .
+            <span class="icon">⌖</span> OPERATION: CLOUD 9
         </div>
     </div>
 
     <!-- Floor Selector -->
-    <div class="floor-selector">
+    <div class="floor-selector hud-panel">
         <h3>Floor Level</h3>
         <div class="floor-buttons">
             <button class="floor-btn" data-floor="2">
@@ -70,7 +75,7 @@
     </div>
 
     <!-- Navigation Panel -->
-    <div class="nav-panel">
+    <div class="nav-panel hud-panel">
         <div class="nav-header">
             <h3>Find Your Way</h3>
             <button id="close-nav" class="close-btn" title="Clear Navigation">×</button>
@@ -102,7 +107,7 @@
     </div>
 
     <!-- Room Info Popup -->
-    <div id="room-info" class="room-info">
+    <div id="room-info" class="room-info hud-panel">
         <div class="room-info-header">
             <h4 id="room-name">Store Name</h4>
             <span id="room-category" class="room-category">Category</span>
@@ -115,13 +120,13 @@
     </div>
     
     <!-- Controls Info -->
-    <div class="controls-info">
+    <div class="controls-info hud-panel">
         <div class="control-hint">Right-click + Drag to rotate</div>
         <div class="control-hint">Scroll to zoom</div>
     </div>
 
     <!-- View Toggle -->
-    <div class="view-toggle">
+    <div class="view-toggle hud-panel">
         <button id="view-3d" class="view-btn active" title="3D View">3D</button>
         <button id="view-2d" class="view-btn" title="2D Top View">2D</button>
     </div>
@@ -129,7 +134,7 @@
     <!-- Loading Overlay -->
     <div id="loading" class="loading-overlay">
         <div class="loader"></div>
-        <p>Loading 3D Map...</p>
+        <p class="loading-text">INITIALIZING SYSTEM...</p>
     </div>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">

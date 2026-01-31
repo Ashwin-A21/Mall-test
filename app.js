@@ -1,5 +1,5 @@
 /**
- * Kerala Mall - 3D Indoor Map Application
+ * Aitsun blueprint - 3D Indoor Map Application
  * Using MapLibre GL JS for 3D visualization
  */
 
@@ -99,7 +99,7 @@ async function init() {
         level: -1, 
         height: (feature.properties && feature.properties.name === "wall_extrude") ? 4 : 0.5,
         base_height: 0,
-        color: "#94A3B8", 
+        color: (feature.properties && feature.properties.color) || "#94A3B8", 
         description: "Building structure"
       }
     }));
@@ -125,7 +125,7 @@ function initMap() {
     container: "map",
     style: {
       version: 8,
-      name: "Kerala Mall Map",
+      name: "Aitsun blue print",
       sources: {
         "carto-dark": {
           type: "raster",
@@ -142,7 +142,7 @@ function initMap() {
         {
           id: "background",
           type: "background",
-          paint: { "background-color": "#0F172A" }, // Dark background
+          paint: { "background-color": "#050a10" }, // Dark background (matches theme)
         },
         {
           id: "carto-dark-layer",

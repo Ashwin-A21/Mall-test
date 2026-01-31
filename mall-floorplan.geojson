@@ -65,7 +65,8 @@
         "height": 4,
         "base_height": 0,
         "color": "#22C55E",
-        "category": "store"
+        "category": "store",
+        "description": "Target: Pharmaceuticals. High value medical supplies. Security: Low."
       },
       "geometry": {
         "coordinates": [
@@ -104,7 +105,8 @@
         "height": 4,
         "base_height": 0,
         "color": "#F59E0B",
-        "category": "store"
+        "category": "store",
+        "description": "Target: General Goods. Cash register located near entrance. Good cover."
       },
       "geometry": {
         "coordinates": [
@@ -143,7 +145,8 @@
         "height": 4,
         "base_height": 0,
         "color": "#8B5CF6",
-        "category": "store"
+        "category": "store",
+        "description": "Target: Art Supplies. Contains valuable rare pigments. Maze-like layout."
       },
       "geometry": {
         "coordinates": [
@@ -182,7 +185,8 @@
         "height": 4,
         "base_height": 0,
         "color": "#6B7280",
-        "category": "storage"
+        "category": "storage",
+        "description": "Target: Storage Unit. Potential hideout. Verify lock mechanism type."
       },
       "geometry": {
         "coordinates": [
@@ -261,7 +265,8 @@
         "height": 8,
         "base_height": 4,
         "color": "#EC4899",
-        "category": "store"
+        "category": "store",
+        "description": "Target: Textiles. Expensive fabrics. Noise dampening environment."
       },
       "geometry": {
         "coordinates": [
@@ -300,7 +305,8 @@
         "height": 8,
         "base_height": 4,
         "color": "#3B82F6",
-        "category": "store"
+        "category": "store",
+        "description": "DANGER: Surveillance Hub. Avoid direct line of sight. Jamming required."
       },
       "geometry": {
         "coordinates": [
@@ -339,7 +345,8 @@
         "height": 8,
         "base_height": 4,
         "color": "#10B981",
-        "category": "store"
+        "category": "store",
+        "description": "Target: Electronics. High-end hardware servers. Alarm system present."
       },
       "geometry": {
         "coordinates": [
@@ -378,7 +385,8 @@
         "height": 12,
         "base_height": 8,
         "color": "#F97316",
-        "category": "store"
+        "category": "store",
+        "description": "Target: Supplements. Protein powder stockpile. Heavy lifting required."
       },
       "geometry": {
         "coordinates": [
@@ -417,7 +425,8 @@
         "height": 12,
         "base_height": 8,
         "color": "#0EA5E9",
-        "category": "store"
+        "category": "store",
+        "description": "Target: Tech Lab. Prototype gadgets and blueprints. Top priority asset."
       },
       "geometry": {
         "coordinates": [
@@ -543,7 +552,8 @@
         "color": "#cbd5e1",
         "height": 2,
         "base_height": 0,
-        "level": 0
+        "level": 0,
+        "description": "Unknown Object. Thermal scan inconclusive. Proceed with caution."
       },
       "geometry": {
         "coordinates": [
