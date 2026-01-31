@@ -904,6 +904,15 @@ function drawAnimatedPath(coordinates, pathNodes) {
       navMarker.remove();
       navMarker = null;
   }
+  
+  // Hide solid elevator so wireframe is visible
+  const activeBtn = document.querySelector(".floor-btn.active");
+  const currentFloor = activeBtn ? parseInt(activeBtn.dataset.floor) : 0;
+  updateFloorFilter(currentFloor, [], true); // Keep filter override
+  
+  // Force Hide solid elevator using paint property (Removed: Not supported in MapLibre)
+  // Logic is now handled by updateFloorFilter(..., ..., true) below
+
 
   // 1. Split path into segments per floor & Detect Vertical Transitions
   const segments = { 0: [], 1: [], 2: [] };
@@ -975,10 +984,11 @@ function drawAnimatedPath(coordinates, pathNodes) {
       });
   });
   
-  // 3. Create Vertical Layers (Elevator Shafts)
+  // 3. Create Vertical Layers (Elevator Shafts - Wireframe/Pillars)
   if (verticalTransitions.length > 0) {
       const features = verticalTransitions.map(trans => {
-          const feature = createSquareBuffer(trans.coords, 1.2); 
+          // Create 4 corner pillars with thinner profile for distinct wireframe look
+          const feature = createCornerPillars(trans.coords, 1.6, 0.08); 
           const minF = Math.min(trans.from, trans.to);
           const maxF = Math.max(trans.from, trans.to);
           
@@ -999,10 +1009,10 @@ function drawAnimatedPath(coordinates, pathNodes) {
           type: "fill-extrusion",
           source: "nav-vertical",
           paint: {
-              "fill-extrusion-color": "#3B82F6", 
+              "fill-extrusion-color": "#64748B", // Structural Gray
               "fill-extrusion-height": ["get", "top"],
               "fill-extrusion-base": ["get", "base"],
-              "fill-extrusion-opacity": 0.6 
+              "fill-extrusion-opacity": 0.8 
           }
       });
   }
@@ -1113,6 +1123,66 @@ function createCircleBuffer(center, radiusMeters) {
     };
 }
 
+// Helper: Create 4 Corner Pillars for Wireframe Elevator
+function createCornerPillars(center, shaftWidth, pillarWidth) {
+    const halfShaft = shaftWidth / 2;
+    const halfPillar = pillarWidth / 2;
+    
+    // Conversion factors
+    const centerLat = center[1];
+    const metersPerDegLat = 111132;
+    const metersPerDegLng = 111132 * Math.cos(centerLat * Math.PI / 180);
+    
+    // Function to create one pillar polygon
+    const createPillar = (cx, cy) => {
+        const offX = halfPillar / metersPerDegLng;
+        const offY = halfPillar / metersPerDegLat;
+        return [
+            [cx - offX, cy - offY],
+            [cx + offX, cy - offY],
+            [cx + offX, cy + offY],
+            [cx - offX, cy + offY],
+            [cx - offX, cy - offY]
+        ];
+    };
+    
+    const polygons = [];
+    
+    // Corner 1: Top Right
+    {
+        const cx = center[0] + (halfShaft / metersPerDegLng);
+        const cy = center[1] + (halfShaft / metersPerDegLat);
+        polygons.push(createPillar(cx, cy));
+    }
+    // Corner 2: Bottom Right
+    {
+        const cx = center[0] + (halfShaft / metersPerDegLng);
+        const cy = center[1] - (halfShaft / metersPerDegLat);
+        polygons.push(createPillar(cx, cy));
+    }
+    // Corner 3: Bottom Left
+    {
+        const cx = center[0] - (halfShaft / metersPerDegLng);
+        const cy = center[1] - (halfShaft / metersPerDegLat);
+        polygons.push(createPillar(cx, cy));
+    }
+    // Corner 4: Top Left
+    {
+        const cx = center[0] - (halfShaft / metersPerDegLng);
+        const cy = center[1] + (halfShaft / metersPerDegLat);
+        polygons.push(createPillar(cx, cy));
+    }
+    
+    return {
+        type: "Feature",
+        geometry: {
+            type: "MultiPolygon",
+            coordinates: polygons.map(p => [p])
+        },
+        properties: {}
+    };
+}
+
 // Helper: Distance calculating vertical steps
 function calculateTotalDistanceWithElevators(nodes) {
     let dist = 0;
@@ -1207,7 +1277,8 @@ function getNavPointAtDistance(nodes, dist) {
 }
 
 // ===== Update Floor Filter (Revised) =====
-function updateFloorFilter(floors, specialIds = []) {
+// ===== Update Floor Filter (Revised) =====
+function updateFloorFilter(floors, specialIds = [], hideElevator = false) {
   if (!map.getLayer("room-extrusion")) return;
 
   const activeFloors = Array.isArray(floors) ? floors : [floors];
@@ -1224,34 +1295,58 @@ function updateFloorFilter(floors, specialIds = []) {
   } else {
     // Show: 
     // 1. All rooms on activeFloors
-    // 2. Elevator (level -1)
+    // 2. Elevator (level -1) IF not hidden
     // 3. SPECIAL IDs (Start/Dest rooms) regardless of floor
     
-    const filter = [
-        "any",
-        ["in", ["get", "level"], ["literal", activeFloors]],
-        ["==", ["get", "level"], -1],
+    // Base visibility: Active Floors or Special IDs
+    const visibilityGroup = ["any",
+        ["in", ["get", "level"], ["literal", activeFloors]]
     ];
     
-    if (specialIds.length > 0) {
-        // Use ["id"] to access feature ID
-        filter.push(["in", ["id"], ["literal", specialIds]]);
+    if (!hideElevator) {
+        visibilityGroup.push(["==", ["get", "level"], -1]);
     }
     
-    map.setFilter("room-extrusion", filter);
+    // Construct final filter
+    let finalFilter;
+    if (hideElevator) {
+        // Strict exclusion of elevator features
+        finalFilter = [
+            "all",
+            visibilityGroup,
+            ["!=", ["get", "category"], "elevator"],
+            ["!", ["in", "Elevator", ["get", "name"]]]
+        ];
+    } else {
+        finalFilter = visibilityGroup;
+    }
+    
+    if (specialIds.length > 0) {
+        // If special IDs exist, they must be included via OR (any) with the main logic?
+        // Wait, if I use "all" above, and then push to it...
+        // Actually, Special IDs just need to be added to visibilityGroup?
+        // Yes. If it matches ID, show it.
+        // BUT if hideElevator is true, do we hide Elevator even if it is Special?
+        // Probably yes.
+        visibilityGroup.push(["in", ["id"], ["literal", specialIds]]);
+    }
+    
+    map.setFilter("room-extrusion", finalFilter);
     
     // Update marker visibility
     allMarkers.forEach((item) => {
-        const isOnActiveFloor = activeFloors.includes(item.level) || item.level === -1;
-        // Check ID match.
-        // We ensure item.id is set in addStoreLabels.
-        const isSpecial = item.id && specialIds.includes(item.id);
+        let isVisible = false;
         
-        if (isOnActiveFloor || isSpecial) {
-             item.element.style.display = ''; 
-        } else {
-             item.element.style.display = 'none';
-        }
+        // Check active floor
+        if (activeFloors.includes(item.level)) isVisible = true;
+        
+        // Check elevator (level -1)
+        if (item.level === -1 && !hideElevator) isVisible = true;
+        
+        // Check special IDs
+        if (item.id && specialIds.includes(item.id)) isVisible = true;
+        
+        item.element.style.display = isVisible ? '' : 'none';
     });
   }
 } // End updateFloorFilter
@@ -1297,6 +1392,13 @@ function clearNavigationPath() {
     cancelAnimationFrame(animationId);
     animationId = null;
   }
+  
+  // Restore solid elevator
+  const activeBtn = document.querySelector(".floor-btn.active");
+  const currentFloor = activeBtn ? parseInt(activeBtn.dataset.floor) : 0;
+  updateFloorFilter(currentFloor, [], false);
+  
+  // Restore opacity (Removed)
 }
 
 // ===== Set Floor =====
