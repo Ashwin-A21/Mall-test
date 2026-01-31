@@ -547,13 +547,13 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "VYAMA SHALE",
+        "name": "VYAYAAMA SHALE",
         "category": "object",
         "color": "#cbd5e1",
         "height": 2,
         "base_height": 0,
         "level": 0,
-        "description": "SHREE AYYAPPA KRIPA VEERA MARUTHI VYAMA SHALE.  GYM at just 500rs per month , Super coach goutham , friendly environment " 
+        "description": "SHREE AYYAPPA KRIPA VEERA MARUTHI VYAYAMA SHALE.  GYM at just 500rs per month , Super coach goutham , friendly environment " 
       },
       "geometry": {
         "coordinates": [
