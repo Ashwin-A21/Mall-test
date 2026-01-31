@@ -81,18 +81,41 @@ const elements = {
 // ===== Initialize Application =====
 async function init() {
   try {
-    const response = await fetch("mall-floorplan.geojson");
-    const data = await response.json();
+    // Load both floorplan and wall data
+    const [floorplanRes, wallRes] = await Promise.all([
+      fetch("mall-floorplan.geojson"),
+      fetch("wall_data.geojson")
+    ]);
     
-    floorplanData = { type: "FeatureCollection", features: data.features };
-    navGraph = data.navGraph;
+    const floorplanJson = await floorplanRes.json();
+    const wallJson = await wallRes.json();
+    
+    // Process wall data and merge into floorplan
+    const processedWalls = wallJson.features.map(feature => ({
+      ...feature,
+      properties: {
+        ...(feature.properties || {}),
+        category: "wall",
+        level: -1, 
+        height: (feature.properties && feature.properties.name === "wall_extrude") ? 4 : 0.5,
+        base_height: 0,
+        color: "#94A3B8", 
+        description: "Building structure"
+      }
+    }));
+
+    floorplanData = { 
+      type: "FeatureCollection", 
+      features: [...floorplanJson.features, ...processedWalls] 
+    };
+    navGraph = floorplanJson.navGraph;
     
     initMap();
     populateNavigationOptions();
     setupEventListeners();
   } catch (error) {
     console.error("Failed to initialize:", error);
-    alert("Failed to load mall data. Please refresh the page.");
+    alert("Failed to load map data. Please refresh the page.");
   }
 }
 
@@ -162,7 +185,7 @@ function initMap() {
   map.on("mousemove", "room-extrusion", (e) => {
     if (e.features.length > 0) {
       const feature = e.features[0];
-      if (feature.properties.category === "building") return;
+// if (feature.properties.category === "building") return; // Allow hover on building/wall features
       if (feature.properties.isOutline) return;
       
       map.getCanvas().style.cursor = "pointer";
@@ -237,10 +260,15 @@ function addFloorplanLayers() {
     source: "floorplan",
     filter: ["!=", ["get", "isOutline"], true],
     paint: {
-      "fill-extrusion-color": ["get", "color"],
+      "fill-extrusion-color": [
+        "case",
+        ["boolean", ["feature-state", "hover"], false],
+        "#fbbf24",
+        ["get", "color"]
+      ],
       "fill-extrusion-height": ["get", "height"],
       "fill-extrusion-base": ["get", "base_height"],
-      "fill-extrusion-opacity": 0.6,
+      "fill-extrusion-opacity": 0.8,
     },
   });
 
@@ -262,8 +290,8 @@ function addStoreLabels() {
     const props = feature.properties;
     
     // Skip outline and building features
-    if (props.isOutline || props.category === 'outline' || props.category === 'building') return;
-    if (!props.name) return;
+    if (props.isOutline || props.category === 'outline' || props.category === 'building' || props.category === 'wall') return;
+    if (!props.name || props.name === 'object' || props.name === 'wall_extrude') return;
 
     // Calculate centroid of polygon
     const coords = feature.geometry.coordinates[0];
@@ -403,7 +431,11 @@ function populateNavigationOptions() {
       (f) =>
         f.properties.category !== "corridor" &&
         f.properties.category !== "building" &&
-        !f.properties.isOutline
+        f.properties.category !== "wall" &&
+        !f.properties.isOutline &&
+        f.properties.name && 
+        f.properties.name !== "object" &&
+        f.properties.name !== "wall_extrude"
     )
     .map((f) => ({
       name: f.properties.name,
