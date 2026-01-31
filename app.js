@@ -81,14 +81,16 @@ const elements = {
 // ===== Initialize Application =====
 async function init() {
   try {
-    // Load both floorplan and wall data
-    const [floorplanRes, wallRes] = await Promise.all([
+    // Load all data sources: floorplan, walls, and the new referenced building
+    const [floorplanRes, wallRes, refBuildingRes] = await Promise.all([
       fetch("mall-floorplan.geojson"),
-      fetch("wall_data.geojson")
+      fetch("wall_data.geojson"),
+      fetch("building_refrenced_data.geojson")
     ]);
     
     const floorplanJson = await floorplanRes.json();
     const wallJson = await wallRes.json();
+    const refBuildingJson = await refBuildingRes.json();
     
     // Process wall data and merge into floorplan
     const processedWalls = wallJson.features.map(feature => ({
@@ -104,9 +106,95 @@ async function init() {
       }
     }));
 
+    // Process Referenced Building Data with Detailed Tactical Categorization
+    const processedRefBuilding = refBuildingJson.features.map((feature, index) => {
+      const name = (feature.properties.name || "").toLowerCase();
+      
+      let category = "common";
+      let height = 1;
+      let base_height = 0;
+      let color = "#475569"; // Default Slate
+      let description = "Unidentified Structure";
+
+      // Tactical Categorization Logic
+      if (name.includes("wall")) {
+        category = "wall";
+        height = 6;
+        color = "#334155"; // Dark Slate
+        description = "Reinforced Perimeter";
+        if (name.includes("fake")) {
+           description = "Concealed Passage";
+           color = "#475569"; // Slightly lighter to distinguish for user (or keep same for secretion)
+        }
+      } 
+      else if (name.includes("security") || name.includes("watchman")) {
+        category = "security";
+        height = name.includes("dog") ? 0.8 : 1.8; // Dogs are shorter
+        color = "#1e3a8a"; // Blue
+        description = name.includes("dog") ? "K9 Unit" : "Security Personnel";
+      }
+      else if (name.includes("employee") || name.includes("staff")) {
+        category = "staff";
+        height = 1.75;
+        color = "#f59e0b"; // Amber/Yellow
+        description = "Authorized Personnel";
+      }
+      else if (name.includes("chair")) {
+        category = "furniture";
+        height = 0.8;
+        color = "#78350f"; // Wood/Brown
+        description = "Seating";
+      }
+      else if (name.includes("desk") || name.includes("table") || name.includes("helpdesk")) {
+        category = "furniture";
+        height = 1.1;
+        color = "#a16207"; // Light Wood/Gold-ish
+        description = "Workstation";
+      }
+      else if (name.includes("camera")) {
+        category = "surveillance";
+        height = 0.5; 
+        base_height = 3.5; // Mount on ceiling/high wall
+        color = "#ef4444"; // Red (Active)
+        description = "Surveillance Node";
+      }
+      else if (name.includes("target") || name.includes("locker")) {
+        category = "objective";
+        height = 1.5;
+        color = "#10b981"; // Emerald
+        description = "Mission Objective";
+      }
+      else if (name.includes("door")) {
+        category = "entrance";
+        height = 2.2;
+        color = "#000000"; // Black
+        description = "Access Point";
+      }
+      else if (name.includes("label")) {
+        category = "label";
+        height = 0; // Flat
+        color = "transparent"; // Or discrete
+        description = "Signage";
+      }
+
+      return {
+        ...feature,
+        id: `ref_${index}`,
+        properties: {
+          ...(feature.properties || {}),
+          level: -1,
+          height: height,
+          base_height: base_height,
+          color: color,
+          category: category,
+          description: description
+        }
+      };
+    });
+
     floorplanData = { 
       type: "FeatureCollection", 
-      features: [...floorplanJson.features, ...processedWalls] 
+      features: [...floorplanJson.features, ...processedWalls, ...processedRefBuilding] 
     };
     navGraph = floorplanJson.navGraph;
     
@@ -310,14 +398,22 @@ function addStoreLabels() {
     if (props.isOutline || props.category === 'outline' || props.category === 'building' || props.category === 'wall') return;
     if (!props.name || props.name === 'object' || props.name === 'wall_extrude') return;
 
-    // Calculate centroid of polygon
-    const coords = feature.geometry.coordinates[0];
-    let sumLng = 0, sumLat = 0;
-    coords.forEach(coord => {
-      sumLng += coord[0];
-      sumLat += coord[1];
-    });
-    const centroid = [sumLng / coords.length, sumLat / coords.length];
+    // Calculate centroid based on geometry type
+    let centroid;
+    if (feature.geometry.type === 'Point') {
+      centroid = feature.geometry.coordinates;
+    } else if (feature.geometry.type === 'Polygon') {
+      const coords = feature.geometry.coordinates[0];
+      let sumLng = 0, sumLat = 0;
+      coords.forEach(coord => {
+        sumLng += coord[0];
+        sumLat += coord[1];
+      });
+      centroid = [sumLng / coords.length, sumLat / coords.length];
+    } else {
+      // Fallback or skip other types like LineString for now if needed, or implement logic
+      return; 
+    }
 
     // Create marker element
     const el = document.createElement('div');
@@ -366,10 +462,14 @@ function addStoreLabels() {
 // ===== Helper: Calculate 3D Altitude in Pixels =====
 function calculatePixelAltitude(height, zoom, pitch) {
   // Formula: height * pxPerMeter * pitchFactor
-  // pxPerMeter = 1.7 * 2^(zoom - 18)
+  // pxPerMeter = 1.7 * 2^(zoom - 18) (approximate scale at latitude ~12 for Mercator)
   const zoomScale = Math.pow(2, zoom - 18);
   const pxPerMeter = 1.7 * zoomScale;
-  const pitchFactor = Math.cos(pitch * Math.PI / 180);
+  
+  // Use sin(pitch) because visual height increases as we tilt down from top-down view
+  // At pitch 0 (top-down), height is invisible (factor 0).
+  // At pitch 90 (horizon), height is fully visible (factor 1).
+  const pitchFactor = Math.sin(pitch * Math.PI / 180);
   
   return height * pxPerMeter * pitchFactor;
 }
@@ -385,10 +485,13 @@ function updateLabelPositions() {
   allMarkers.forEach(({ marker, height, base_height }) => {
     // Total height of the roof relative to ground
     const totalHeight = (base_height || 0) + (height || 0);
+    
+    // Calculate the pixel offset to lift the marker to the roof
     const pixelLift = calculatePixelAltitude(totalHeight, zoom, pitch);
     
     // Safety check
     if (!isNaN(pixelLift)) {
+         // Negative Y offset moves the marker UP
          marker.setOffset([0, -pixelLift]);
     }
   });
