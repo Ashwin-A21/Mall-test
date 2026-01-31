@@ -130,9 +130,9 @@ function initMap() {
         "carto-dark": {
           type: "raster",
           tiles: [
-            "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-            "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-            "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png"
+            "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+            "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+            "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
           ],
           tileSize: 256,
           attribution: '&copy; OSM, &copy; CARTO'
@@ -142,7 +142,7 @@ function initMap() {
         {
           id: "background",
           type: "background",
-          paint: { "background-color": "#0F172A" },
+          paint: { "background-color": "#0F172A" }, // Dark background
         },
         {
           id: "carto-dark-layer",
@@ -232,11 +232,20 @@ function addFloorplanLayers() {
     
     // Assign defaults for missing properties to prevent MapLibre errors
     feature.properties.id = index;
-    if (feature.properties.color === undefined) feature.properties.color = "#cccccc";
-    if (feature.properties.height === undefined) feature.properties.height = 3;
-    if (feature.properties.base_height === undefined) feature.properties.base_height = 0;
-    if (feature.properties.level === undefined) feature.properties.level = 0;
-    if (feature.properties.category === undefined) feature.properties.category = "common";
+    if (feature.properties.color == null) feature.properties.color = "#cccccc";
+    
+    // Ensure numbers are actual numbers (not strings)
+    feature.properties.height = (feature.properties.height == null) ? 3 : Number(feature.properties.height);
+    if (isNaN(feature.properties.height)) feature.properties.height = 3;
+    
+    feature.properties.base_height = (feature.properties.base_height == null) ? 0 : Number(feature.properties.base_height);
+    if (isNaN(feature.properties.base_height)) feature.properties.base_height = 0;
+    
+    feature.properties.level = (feature.properties.level == null) ? 0 : Number(feature.properties.level);
+    if (isNaN(feature.properties.level)) feature.properties.level = 0;
+
+    if (feature.properties.category == null) feature.properties.category = "common";
+    if (feature.properties.isOutline == null) feature.properties.isOutline = false;
 
     return { ...feature, id: index };
   });
@@ -255,7 +264,7 @@ function addFloorplanLayers() {
     source: "floorplan",
     filter: ["==", ["get", "isOutline"], true],
     paint: {
-      "line-color": "#60A5FA",
+      "line-color": "#60A5FA", // Light blue for dark map
       "line-width": 3,
       "line-opacity": 0.8,
     },
@@ -272,10 +281,10 @@ function addFloorplanLayers() {
         "case",
         ["boolean", ["feature-state", "hover"], false],
         "#fbbf24",
-        ["get", "color"]
+        ["coalesce", ["get", "color"], "#cccccc"]
       ],
-      "fill-extrusion-height": ["get", "height"],
-      "fill-extrusion-base": ["get", "base_height"],
+      "fill-extrusion-height": ["coalesce", ["get", "height"], 0],
+      "fill-extrusion-base": ["coalesce", ["get", "base_height"], 0],
       "fill-extrusion-opacity": 0.8,
     },
   });
@@ -776,9 +785,112 @@ function addNavigationMarkers(coordinates, pathNodes) {
   updateLabelPositions();
 }
 
+// ===== Generate Path Buffer (For 3D Line Validation) =====
+function createPathBuffer(coords, widthMeters) {
+    if (coords.length < 2) return null;
+    
+    // Approx degrees offsets
+    const centerLat = coords[0][1];
+    const metersPerDegLat = 111132;
+    const metersPerDegLng = 111132 * Math.cos(centerLat * Math.PI / 180);
+    
+    // Scale width
+    const offsetLat = (widthMeters / 2) / metersPerDegLat;
+    const offsetLng = (widthMeters / 2) / metersPerDegLng;
+
+    const polygons = [];
+    
+    for (let i = 0; i < coords.length - 1; i++) {
+        const p1 = coords[i];
+        const p2 = coords[i+1];
+        
+        const dx = p2[0] - p1[0];
+        const dy = p2[1] - p1[1];
+        const len = Math.sqrt(dx*dx + dy*dy);
+        if (len === 0) continue;
+        
+        // Normal vector (-dy, dx) normalized
+        const nx = -dy / len;
+        const ny = dx / len;
+        
+        // Offset vector
+        const offX = nx * offsetLng;
+        const offY = ny * offsetLat;
+        
+        // Create Rectangle for this segment
+        const p1L = [p1[0] + offX, p1[1] + offY];
+        const p1R = [p1[0] - offX, p1[1] - offY];
+        const p2L = [p2[0] + offX, p2[1] + offY];
+        const p2R = [p2[0] - offX, p2[1] - offY];
+        
+        polygons.push([p1L, p2L, p2R, p1R, p1L]);
+        
+        // Add a joint square at p2 to fill cracks between segments
+        // (Not needed for last point, but harmless if added)
+        // We use a simple box around the point
+        if (i < coords.length - 1) {
+            polygons.push([
+                [p2[0] - offsetLng, p2[1] - offsetLat],
+                [p2[0] + offsetLng, p2[1] - offsetLat],
+                [p2[0] + offsetLng, p2[1] + offsetLat],
+                [p2[0] - offsetLng, p2[1] + offsetLat],
+                [p2[0] - offsetLng, p2[1] - offsetLat]
+            ]);
+        }
+        
+        // Also add joint at p1 for the very first point to be safe or if it connects weirdly
+        if (i === 0) {
+             polygons.push([
+                [p1[0] - offsetLng, p1[1] - offsetLat],
+                [p1[0] + offsetLng, p1[1] - offsetLat],
+                [p1[0] + offsetLng, p1[1] + offsetLat],
+                [p1[0] - offsetLng, p1[1] + offsetLat],
+                [p1[0] - offsetLng, p1[1] - offsetLat]
+            ]);
+        }
+    }
+    
+    return {
+        type: "Feature",
+        geometry: {
+            type: "MultiPolygon",
+            coordinates: polygons
+        }
+    };
+}
+
+// ===== Generate Square Buffer (For Vertical Shaft) =====
+function createSquareBuffer(center, sizeMeters) {
+    const centerLat = center[1];
+    const metersPerDegLat = 111132;
+    const metersPerDegLng = 111132 * Math.cos(centerLat * Math.PI / 180);
+    
+    const halfSizeLat = (sizeMeters / 2) / metersPerDegLat;
+    const halfSizeLng = (sizeMeters / 2) / metersPerDegLng;
+    
+    const c0 = center[0];
+    const c1 = center[1];
+    
+    const ring = [
+        [c0 - halfSizeLng, c1 - halfSizeLat],
+        [c0 + halfSizeLng, c1 - halfSizeLat],
+        [c0 + halfSizeLng, c1 + halfSizeLat],
+        [c0 - halfSizeLng, c1 + halfSizeLat],
+        [c0 - halfSizeLng, c1 - halfSizeLat]
+    ];
+    
+    return {
+        type: "Feature",
+        geometry: {
+            type: "Polygon",
+            coordinates: [ring]
+        },
+        properties: {}
+    };
+}
+
 // ===== Draw Animated Navigation Path =====
 let navMarker = null;
-let navSegments = [];
 
 function drawAnimatedPath(coordinates, pathNodes) {
   // Stop existing animation
@@ -793,150 +905,258 @@ function drawAnimatedPath(coordinates, pathNodes) {
       navMarker = null;
   }
 
-  // 1. Split path into segments per floor
+  // 1. Split path into segments per floor & Detect Vertical Transitions
   const segments = { 0: [], 1: [], 2: [] };
-  let lastFloor = -1;
+  const verticalTransitions = []; 
   
+  let lastTrackedFloor = -1;
+  let potentialElevatorCoords = null;
+
   pathNodes.forEach((node, i) => {
       const floor = node.floor;
+      
+      // Tracking for Vertical Transitions
+      if (floor === -1) {
+          potentialElevatorCoords = node.coords;
+      } else {
+          if (lastTrackedFloor !== -1 && floor !== lastTrackedFloor) {
+               const shaftCoords = potentialElevatorCoords || node.coords;
+               verticalTransitions.push({
+                   coords: shaftCoords,
+                   from: lastTrackedFloor,
+                   to: floor
+               });
+               potentialElevatorCoords = null;
+          }
+          lastTrackedFloor = floor;
+      }
+
       if (floor === undefined || floor === -1) {
-          if (lastFloor !== -1) segments[lastFloor].push(node.coords);
+          let effectiveFloor = lastTrackedFloor;
+          if (effectiveFloor !== -1) {
+              if (!segments[effectiveFloor]) segments[effectiveFloor] = [];
+              segments[effectiveFloor].push(node.coords);
+          }
       } else {
           if (!segments[floor]) segments[floor] = [];
           segments[floor].push(node.coords);
-          lastFloor = floor;
       }
   });
 
-  // Create sources and layers
-  Object.keys(segments).forEach(floor => {
+  // 2. Create Horizontal Layers (Per Floor)
+  Object.keys(segments).forEach(floorStr => {
+      const floor = parseInt(floorStr);
       const coords = segments[floor];
       if (coords.length < 2) return;
       
+      // Use existing createPathBuffer helper
+      const polyFeature = createPathBuffer(coords, 0.8); 
+      if (!polyFeature) return;
+
       const layerId = `nav-route-${floor}`;
       map.addSource(layerId, {
           type: "geojson",
-          data: {
-              type: "Feature",
-              geometry: { type: "LineString", coordinates: coords }
-          }
+          data: polyFeature
       });
       
-      map.addLayer({
-          id: `${layerId}-bg`,
-          type: "line",
-          source: layerId,
-          layout: { "line-cap": "round", "line-join": "round" },
-          paint: {
-              "line-color": "#1E3A5F",
-              "line-width": 10,
-              "line-opacity": 0.8,
-              "line-translate": [0, 0], 
-              "line-translate-anchor": "viewport"
-          }
-      });
+      const baseHeight = floor * 4;
       
+      // 3D Floating Path (3m offset for high visibility)
       map.addLayer({
-          id: `${layerId}-line`,
-          type: "line",
+          id: `${layerId}-3d`,
+          type: "fill-extrusion",
           source: layerId,
-          layout: { "line-cap": "round", "line-join": "round" },
           paint: {
-              "line-color": "#F97316",
-              "line-width": 5,
-              "line-dasharray": [0, 2, 2],
-              "line-translate": [0, 0],
-              "line-translate-anchor": "viewport"
+              "fill-extrusion-color": "#3B82F6", 
+              "fill-extrusion-height": baseHeight + 3.0, 
+              "fill-extrusion-base": baseHeight + 2.8,  
+              "fill-extrusion-opacity": 0.95
           }
       });
   });
   
-  updatePathAltitude();
-  // Events hooked in addFloorplanLayers or initMap mostly, but ensuring here doesn't hurt.
-  // Actually avoid duplicate listeners if possible.
+  // 3. Create Vertical Layers (Elevator Shafts)
+  if (verticalTransitions.length > 0) {
+      const features = verticalTransitions.map(trans => {
+          const feature = createSquareBuffer(trans.coords, 1.2); 
+          const minF = Math.min(trans.from, trans.to);
+          const maxF = Math.max(trans.from, trans.to);
+          
+          feature.properties = {
+              base: minF * 4,
+              top: maxF * 4 + 3.0 
+          };
+          return feature;
+      });
+      
+      map.addSource("nav-vertical", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: features }
+      });
+      
+      map.addLayer({
+          id: "nav-vertical-extrusion",
+          type: "fill-extrusion",
+          source: "nav-vertical",
+          paint: {
+              "fill-extrusion-color": "#3B82F6", 
+              "fill-extrusion-height": ["get", "top"],
+              "fill-extrusion-base": ["get", "base"],
+              "fill-extrusion-opacity": 0.6 
+          }
+      });
+  }
 
-  // Add animated avatar marker
-  const el = document.createElement('div');
-  el.className = 'nav-avatar';
-  el.innerHTML = `
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="7" r="4"></circle>
-      <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"></path>
-    </svg>
-  `;
-  el.style.cssText = `
-      width: 32px;
-      height: 32px;
-      background: #F97316;
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 10px rgba(249, 115, 22, 0.6);
-      z-index: 10;
-      transition: transform 0.1s; 
-  `;
+  // Add 3D Avatar (Composite Humanoid)
+  // 1. Body Source & Layer
+  map.addSource("nav-avatar-body", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] }
+  });
+  map.addLayer({
+      id: "nav-avatar-body-3d",
+      type: "fill-extrusion",
+      source: "nav-avatar-body",
+      paint: {
+          "fill-extrusion-color": "#2563EB", // Blue shirt
+          "fill-extrusion-height": ["get", "height"],
+          "fill-extrusion-base": ["get", "base"],
+          "fill-extrusion-opacity": 1.0
+      }
+  });
 
-  navMarker = new maplibregl.Marker({
-      element: el,
-      anchor: 'bottom',
-      offset: [0, 0]
-  })
-  .setLngLat(coordinates[0])
-  .addTo(map);
+  // 2. Head Source & Layer
+  map.addSource("nav-avatar-head", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] }
+  });
+  map.addLayer({
+      id: "nav-avatar-head-3d",
+      type: "fill-extrusion",
+      source: "nav-avatar-head",
+      paint: {
+          "fill-extrusion-color": "#FEF3C7", // Skin tone
+          "fill-extrusion-height": ["get", "height"],
+          "fill-extrusion-base": ["get", "base"],
+          "fill-extrusion-opacity": 1.0
+      }
+  });
 
   addNavigationMarkers(coordinates, pathNodes);
 
-  // Animation Loop
+  // Animation Loop with Vertical Distance
   let startTime = null;
-  const totalDist = calculateTotalDistance(coordinates);
+  const totalDist = calculateTotalDistanceWithElevators(pathNodes);
   
   function animate(timestamp) {
       if (!startTime) startTime = timestamp;
-      let progress = (timestamp - startTime) / 10000;
+      let progress = (timestamp - startTime) / 8000; 
       if (progress > 1) { startTime = timestamp; progress = 0; }
       
       const currentDist = progress * totalDist;
-      const navPoint = getNavPointAtDistance(pathNodes, currentDist); 
+      const navPoint = getNavPointAtDistanceWithElevators(pathNodes, currentDist); 
       
       if (navPoint) {
-          navMarker.setLngLat(navPoint.coords);
-          
-          // UNIFIED 3D OFFSET LOGIC
-          const zoom = map.getZoom();
-          const pitch = map.getPitch();
-          
-          // Match the formula used in updateLabelPositions (lines 325-341)
-          const zoomScale = Math.pow(2, zoom - 18);
-          const pxPerMeter = 1.7 * zoomScale;
-          const pitchFactor = Math.cos(pitch * Math.PI / 180);
-          
-          let floorHeight = 0;
-          if (navPoint.floor === 1) floorHeight = 4;
-          if (navPoint.floor === 2) floorHeight = 8;
-          
-          const pixelLift = floorHeight * pxPerMeter * pitchFactor;
-          
-          navMarker.setOffset([0, -pixelLift]);
-          
-          // Animate dashes
-          dashOffset -= 0.5;
-          [0, 1, 2].forEach(f => {
-              if (map.getLayer(`nav-route-${f}-line`)) {
-                 map.setPaintProperty(`nav-route-${f}-line`, 'line-dashoffset', -dashOffset);
-              }
-          });
+           // Calculate Z levels
+           const zFloor = (navPoint.floor * 4) + 3.0; // Feet at path level
+           const zNeck = zFloor + 1.2; // 1.2m tall body
+           const zHeadTop = zNeck + 0.4; // 0.4m tall head
+           
+           // Create Body Polygon (Circle, r=0.3m)
+           const bodyPoly = createCircleBuffer(navPoint.coords, 0.4);
+           bodyPoly.properties = { base: zFloor, height: zNeck };
+           
+           // Create Head Polygon (Circle, r=0.2m)
+           const headPoly = createCircleBuffer(navPoint.coords, 0.25);
+           headPoly.properties = { base: zNeck, height: zHeadTop };
+           
+           map.getSource("nav-avatar-body").setData(bodyPoly);
+           map.getSource("nav-avatar-head").setData(headPoly);
       }
       animationId = requestAnimationFrame(animate);
   }
-  requestAnimationFrame(animate);
-
+  requestAnimationFrame(animate); 
+  
   const bounds = coordinates.reduce(
     (bounds, coord) => bounds.extend(coord),
     new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
   );
   map.fitBounds(bounds, { padding: 100, pitch: 50 });
+}
+
+// Helper: Create Circle Polygon (approximate with 16 segments)
+function createCircleBuffer(center, radiusMeters) {
+    const segments = 16;
+    const coords = [];
+    const centerLat = center[1];
+    const metersPerDegLat = 111132;
+    const metersPerDegLng = 111132 * Math.cos(centerLat * Math.PI / 180);
+    
+    // Convert radius to degrees
+    const rLat = radiusMeters / metersPerDegLat;
+    const rLng = radiusMeters / metersPerDegLng;
+    
+    for (let i = 0; i <= segments; i++) {
+        const theta = (i / segments) * 2 * Math.PI;
+        const dx = rLng * Math.cos(theta);
+        const dy = rLat * Math.sin(theta);
+        coords.push([center[0] + dx, center[1] + dy]);
+    }
+    
+    return {
+        type: "Feature",
+        geometry: {
+            type: "Polygon",
+            coordinates: [coords]
+        },
+        properties: {}
+    };
+}
+
+// Helper: Distance calculating vertical steps
+function calculateTotalDistanceWithElevators(nodes) {
+    let dist = 0;
+    for(let i=0; i<nodes.length-1; i++) {
+        const floorDiff = Math.abs(nodes[i].floor - nodes[i+1].floor);
+        if (floorDiff > 0) {
+             dist += floorDiff * 4; // 4 meters
+        } else {
+             dist += calculateDistance(nodes[i].coords, nodes[i+1].coords) * 1000; 
+        }
+    }
+    return dist;
+}
+
+// Helper: Interpolation with Elevators
+function getNavPointAtDistanceWithElevators(nodes, dist) {
+    let d = 0;
+    for (let i = 0; i < nodes.length - 1; i++) {
+        let segD = 0;
+        const floorDiff = nodes[i+1].floor - nodes[i].floor; // signed
+        
+        if (Math.abs(floorDiff) > 0) {
+            segD = Math.abs(floorDiff) * 4; // 4 meters per floor
+        } else {
+            segD = calculateDistance(nodes[i].coords, nodes[i+1].coords) * 1000;
+        }
+
+        if (d + segD >= dist) {
+            const r = (dist - d) / segD; // 0..1 progress in segment
+            
+            // Coord interpolation
+            const coords = [
+                nodes[i].coords[0] + (nodes[i+1].coords[0] - nodes[i].coords[0]) * r,
+                nodes[i].coords[1] + (nodes[i+1].coords[1] - nodes[i].coords[1]) * r
+            ];
+            
+            // Floor interpolation
+            const floor = nodes[i].floor + floorDiff * r;
+            
+            return { coords, floor };
+        }
+        d += segD;
+    }
+    return nodes[nodes.length-1];
 }
 
 // ===== Update Line Path Altitude =====
@@ -1009,12 +1229,13 @@ function updateFloorFilter(floors, specialIds = []) {
     
     const filter = [
         "any",
-        ["in", "level", ...activeFloors],
-        ["==", "level", -1],
+        ["in", ["get", "level"], ["literal", activeFloors]],
+        ["==", ["get", "level"], -1],
     ];
     
     if (specialIds.length > 0) {
-        filter.push(["in", "id", ...specialIds]);
+        // Use ["id"] to access feature ID
+        filter.push(["in", ["id"], ["literal", specialIds]]);
     }
     
     map.setFilter("room-extrusion", filter);
@@ -1040,14 +1261,15 @@ function updateFloorFilter(floors, specialIds = []) {
 function clearNavigationPath() {
   const layersToRemove = [
     "nav-line", "nav-line-bg", "nav-line-glow", 
-    "nav-vertical-extrusion" // Added vertical layer
+    "nav-vertical-extrusion", "nav-avatar-body-3d", "nav-avatar-head-3d"
   ];
-  const sourcesToRemove = ["nav-route", "nav-vertical"]; // Added vertical source
+  const sourcesToRemove = ["nav-route", "nav-vertical", "nav-avatar-body", "nav-avatar-head"];
 
   // Clean up per-floor segment layers and sources
   [0, 1, 2].forEach(floor => {
-      layersToRemove.push(`nav-route-${floor}-line`);
-      layersToRemove.push(`nav-route-${floor}-bg`);
+      layersToRemove.push(`nav-route-${floor}-3d`);
+      layersToRemove.push(`nav-route-${floor}-line-visible`);
+      sourcesToRemove.push(`nav-route-${floor}-line-source`);
       sourcesToRemove.push(`nav-route-${floor}`);
   });
 
